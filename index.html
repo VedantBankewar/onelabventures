@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Reconciliation Engine — Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-2: #242836;
+    --border: #2e3347;
+    --text: #e1e4ed;
+    --text-muted: #8b8fa7;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108,92,231,0.25);
+    --green: #00d68f;
+    --green-bg: rgba(0,214,143,0.12);
+    --red: #ff6b6b;
+    --red-bg: rgba(255,107,107,0.12);
+    --amber: #ffa726;
+    --amber-bg: rgba(255,167,38,0.12);
+    --blue: #4fc3f7;
+    --blue-bg: rgba(79,195,247,0.12);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #1a1d27 0%, #242836 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -10%;
+    width: 120%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 50%, var(--accent-glow) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .header-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .header p {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-left: 10px;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+  }
+
+  .container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+
+  /* ── KPI Cards ─────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .kpi:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+  .kpi-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .kpi.green .kpi-value { color: var(--green); }
+  .kpi.red .kpi-value { color: var(--red); }
+  .kpi.amber .kpi-value { color: var(--amber); }
+  .kpi.blue .kpi-value { color: var(--blue); }
+
+  .kpi .glow {
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    opacity: 0.15;
+  }
+  .kpi.green .glow  { background: var(--green); }
+  .kpi.red .glow    { background: var(--red); }
+  .kpi.amber .glow  { background: var(--amber); }
+  .kpi.blue .glow   { background: var(--blue); }
+
+  /* ── Section ───────────────────────────────── */
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* ── Gap Table ─────────────────────────────── */
+  .gap-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .gap-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .gap-table td {
+    padding: 14px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .gap-table tr:last-child td { border-bottom: none; }
+  .gap-table tr:hover td { background: rgba(108,92,231,0.04); }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tag.cross    { background: var(--amber-bg); color: var(--amber); }
+  .tag.dup      { background: var(--red-bg);   color: var(--red); }
+  .tag.orphan   { background: var(--red-bg);   color: var(--red); }
+  .tag.rounding { background: var(--amber-bg); color: var(--amber); }
+  .tag.unexpected { background: var(--blue-bg); color: var(--blue); }
+
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  /* ── Terminal ──────────────────────────────── */
+  .terminal {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .terminal-bar {
+    background: #1a1a1a;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .terminal-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+  .terminal-dot.r { background: #ff5f56; }
+  .terminal-dot.y { background: #ffbd2e; }
+  .terminal-dot.g { background: #27c93f; }
+  .terminal-bar span {
+    margin-left: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .terminal-body {
+    padding: 16px 20px;
+    color: #c8c8c8;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .t-green  { color: #27c93f; }
+  .t-red    { color: #ff5f56; }
+  .t-amber  { color: #ffbd2e; }
+  .t-cyan   { color: #4fc3f7; }
+  .t-muted  { color: #666; }
+  .t-bold   { font-weight: 700; color: #fff; }
+
+  /* ── Footer ────────────────────────────────── */
+  .footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 32px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+  }
+
+  /* ── Animations ─────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate {
+    animation: fadeUp 0.5s ease-out both;
+  }
+  .animate:nth-child(1) { animation-delay: 0.05s; }
+  .animate:nth-child(2) { animation-delay: 0.10s; }
+  .animate:nth-child(3) { animation-delay: 0.15s; }
+  .animate:nth-child(4) { animation-delay: 0.20s; }
+
+  /* ── Two-column for totals ──────────────────── */
+  .totals-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .total-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .total-card h3 {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+  .total-card .val {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-inner">
+    <h1>Payment Reconciliation Engine <span class="badge">PROTOTYPE</span></h1>
+    <p>Reconciliation report for March 2026 &mdash; Generated 2026-04-01T15:35:10</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi green animate">
+      <div class="glow"></div>
+      <div class="kpi-label">Matched</div>
+      <div class="kpi-value">99</div>
+      <div class="kpi-sub">of 100 platform txns</div>
+    </div>
+    <div class="kpi red animate">
+      <div class="glow"></div>
+      <div class="kpi-label">Gaps Found</div>
+      <div class="kpi-value">5</div>
+      <div class="kpi-sub">across 4 categories</div>
+    </div>
+    <div class="kpi amber animate">
+      <div class="glow"></div>
+      <div class="kpi-label">Rounding Drift</div>
+      <div class="kpi-value">$0.09</div>
+      <div class="kpi-sub">tolerance: &plusmn;$0.05</div>
+    </div>
+    <div class="kpi blue animate">
+      <div class="glow"></div>
+      <div class="kpi-label">Bank Records</div>
+      <div class="kpi-value">101</div>
+      <div class="kpi-sub">vs 100 platform</div>
+    </div>
+  </div>
+
+  <!-- Totals -->
+  <div class="totals-row">
+    <div class="total-card">
+      <h3>Platform Total</h3>
+      <div class="val" style="color:var(--text);">$19,948.15</div>
+    </div>
+    <div class="total-card">
+      <h3>Bank Total</h3>
+      <div class="val" style="color:var(--text);">$19,929.11</div>
+    </div>
+  </div>
+
+  <!-- Gap Details -->
+  <div class="section-title">
+    <span class="dot" style="background:var(--red);"></span>
+    Detected Gaps
+  </div>
+
+  <table class="gap-table">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Transaction ID</th>
+        <th>Amount</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag dup">DUPLICATE</span></td>
+        <td class="mono">TXN-8B815903</td>
+        <td class="mono">$274.67</td>
+        <td>Appears 2&times; in bank settlements</td>
+      </tr>
+      <tr>
+        <td><span class="tag cross">CROSS-MONTH</span></td>
+        <td class="mono">TXN-F46B126A</td>
+        <td class="mono">$263.80</td>
+        <td>Transaction on 2026-03-31 settles 2026-04-01 (next month)</td>
+      </tr>
+      <tr>
+        <td><span class="tag orphan">ORPHAN REFUND</span></td>
+        <td class="mono">TXN-6D5096CE</td>
+        <td class="mono">-$30.00</td>
+        <td>Refund with no matching platform transaction</td>
+      </tr>
+      <tr>
+        <td><span class="tag rounding">ROUNDING DRIFT</span></td>
+        <td class="mono">AGGREGATE</td>
+        <td class="mono">+$0.09</td>
+        <td>Cumulative drift across 99 matched pairs (exceeds &plusmn;$0.05)</td>
+      </tr>
+      <tr>
+        <td><span class="tag unexpected">UNEXPECTED</span></td>
+        <td class="mono">TXN-8B815903</td>
+        <td class="mono">$274.67</td>
+        <td>Duplicate's extra copy — no platform match for 2nd settlement</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Terminal -->
+  <div class="section-title">
+    <span class="dot" style="background:var(--green);"></span>
+    CLI Output
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="terminal-dot r"></div>
+      <div class="terminal-dot y"></div>
+      <div class="terminal-dot g"></div>
+      <span>python main.py</span>
+    </div>
+    <div class="terminal-body">
+<span class="t-cyan">[GEN]</span>  Generating 100 transactions (seed=42)...
+<span class="t-cyan">[CSV]</span>  Exporting CSVs to output/...
+<span class="t-muted">     &gt; output/platform_transactions.csv  (100 records)</span>
+<span class="t-muted">     &gt; output/bank_settlements.csv  (102 records)</span>
+
+<span class="t-cyan">[RUN]</span>  Running reconciliation for 2026-03...
+
+<span class="t-bold">============================================================</span>
+<span class="t-bold">  RECONCILIATION REPORT - 2026-03</span>
+<span class="t-bold">============================================================</span>
+
+  Total platform transactions :  100
+  Total bank settlements      :  101
+
+  <span class="t-green">[OK]</span>    Matched                  :  99
+  <span class="t-amber">[WARN]</span>  Cross-month settlements  :   1
+  <span class="t-red">[FAIL]</span>  Duplicate settlements    :   1
+  <span class="t-red">[FAIL]</span>  Orphan refunds           :   1
+  <span class="t-red">[FAIL]</span>  Unexpected settlements   :   1
+
+  Platform total  : $19,948.15
+  Bank total      : $19,929.11
+  Rounding drift  : $0.09  <span class="t-amber">&lt;&lt; EXCEEDS TOLERANCE</span>
+
+<span class="t-bold">============================================================</span>
+<span class="t-bold">  DETAILS</span>
+<span class="t-muted">------------------------------------------------------------</span>
+  <span class="t-red">[DUPLICATE_SETTLEMENT]</span>  TXN-8B815903  $274.67
+  <span class="t-amber">[CROSS_MONTH]</span>          TXN-F46B126A  $263.80
+  <span class="t-red">[ORPHAN_REFUND]</span>        TXN-6D5096CE  -$30.00
+  <span class="t-amber">[ROUNDING_DRIFT]</span>       AGGREGATE     +$0.09
+<span class="t-bold">============================================================</span>
+
+<span class="t-green">[OUT]</span>  JSON report saved to output/reconciliation_report.json
+    </div>
+  </div>
+
+  <!-- Test Results -->
+  <div class="section-title">
+    <span class="dot" style="background:var(--green);"></span>
+    Test Suite Results
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="terminal-dot r"></div>
+      <div class="terminal-dot y"></div>
+      <div class="terminal-dot g"></div>
+      <span>python -m pytest test_recon.py -v</span>
+    </div>
+    <div class="terminal-body">
+<span class="t-muted">============================= test session starts ============================</span>
+<span class="t-muted">platform win32 -- Python 3.14.3, pytest-9.0.2</span>
+
+test_recon.py::<span class="t-bold">TestExactMatch::test_clean_data_all_matched</span>       <span class="t-green">PASSED</span>
+test_recon.py::<span class="t-bold">TestCrossMonth::test_cross_month_detected</span>         <span class="t-green">PASSED</span>
+test_recon.py::<span class="t-bold">TestRoundingDrift::test_rounding_drift_exceeds</span>    <span class="t-green">PASSED</span>
+test_recon.py::<span class="t-bold">TestRoundingDrift::test_rounding_within_tolerance</span> <span class="t-green">PASSED</span>
+test_recon.py::<span class="t-bold">TestDuplicate::test_duplicate_settlement_detected</span>  <span class="t-green">PASSED</span>
+test_recon.py::<span class="t-bold">TestOrphanRefund::test_orphan_refund_detected</span>     <span class="t-green">PASSED</span>
+test_recon.py::<span class="t-bold">TestMissingSettlement::test_missing_settlement</span>     <span class="t-green">PASSED</span>
+test_recon.py::<span class="t-bold">TestUnexpectedSettlement::test_unexpected</span>          <span class="t-green">PASSED</span>
+test_recon.py::<span class="t-bold">TestFullIntegration::test_all_four_gaps_detected</span>  <span class="t-green">PASSED</span>
+
+<span class="t-green">============================== 9 passed in 0.05s ==============================</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    Payment Reconciliation Engine &bull; Built with Python 3.14 &bull; Zero external dependencies &bull; Seed-deterministic output
+  </div>
+
+</div>
+</body>
+</html>
