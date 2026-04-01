@@ -1,0 +1,54 @@
+{
+  "month": "2026-03",
+  "total_platform": 100,
+  "total_bank": 101,
+  "matched": 99,
+  "platform_sum": "19948.15",
+  "bank_sum": "19929.11",
+  "rounding_drift": "0.09",
+  "gaps": [
+    {
+      "gap_type": "duplicate_settlement",
+      "transaction_id": "TXN-220D291C",
+      "platform_amount": null,
+      "bank_amount": "274.67",
+      "details": "Appears 2x in bank settlements (amounts: [Decimal('274.67'), Decimal('274.67')])"
+    },
+    {
+      "gap_type": "cross_month",
+      "transaction_id": "TXN-52523A0F",
+      "platform_amount": "263.80",
+      "bank_amount": "263.80",
+      "details": "Transaction on 2026-03-31 settles 2026-04-01 (next month)"
+    },
+    {
+      "gap_type": "orphan_refund",
+      "transaction_id": "TXN-99494A43",
+      "platform_amount": null,
+      "bank_amount": "-30.00",
+      "details": "Refund of -30.00 with no matching platform transaction"
+    },
+    {
+      "gap_type": "rounding_drift",
+      "transaction_id": "AGGREGATE",
+      "platform_amount": "19684.35",
+      "bank_amount": "19684.44",
+      "details": "Cumulative drift of 0.09 across 99 matched pairs (tolerance: \u00b10.05)"
+    },
+    {
+      "gap_type": "unexpected_settlement",
+      "transaction_id": "TXN-220D291C",
+      "platform_amount": null,
+      "bank_amount": "274.67",
+      "details": "Bank settlement with no matching platform transaction (settled 2026-03-10)"
+    }
+  ],
+  "gap_summary": {
+    "duplicate_settlement": 1,
+    "cross_month": 1,
+    "orphan_refund": 1,
+    "rounding_drift": 1,
+    "unexpected_settlement": 1
+  },
+  "generated_at": "2026-04-01T16:27:35.462643"
+}
